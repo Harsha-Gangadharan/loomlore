@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "347695721501",
+    "project_id": "lore-cf0ee",
+    "storage_bucket": "lore-cf0ee.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:347695721501:android:cb6bd6a793ccb624e56af4",
+        "android_client_info": {
+          "package_name": "com.example.flutterlore"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDYA2rw5ff9KFh-OXH7NgW_wf401eMXo2c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
