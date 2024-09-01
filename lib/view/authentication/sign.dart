@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutterlore/view/authentication/authservice.dart';
 import 'package:flutterlore/view/authentication/login.dart';
+import 'package:flutterlore/view/authentication/phonelogin.dart';
 import 'package:flutterlore/view/authentication/validation.dart';
 import 'package:flutterlore/view/authentication/widget.dart';
 import 'package:flutterlore/view/home/bottomnavi.dart';
@@ -171,7 +172,12 @@ final FirebaseAuthService _authService = FirebaseAuthService();
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 30),
                         child: OutlinedButton.icon(
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => PhoneLogin()),
+      );
+                          },
                           icon: Icon(
                             Icons.phone,
                             color: Color(0xffCC8381),

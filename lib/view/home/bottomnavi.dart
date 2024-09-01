@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 
 import 'package:circular_reveal_animation/circular_reveal_animation.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+import 'package:flutterlore/view/home/home.dart';
+import 'package:flutterlore/view/home/location.dart';
+import 'package:flutterlore/view/home/runway.dart';
+import 'package:flutterlore/view/home/style.dart';
 
 
 class Packages extends StatefulWidget {
@@ -24,10 +28,10 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _pages = [
-    //   HomePage(),
-    //   DesignPage(),
-    //   RunwayPage(),
-    // LocationPage(),
+      HomePage(),
+      DesignPage(),
+      RunwayPage(),
+    LocationPage(),
       // Add other pages here
     ];
 

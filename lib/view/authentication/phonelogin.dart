@@ -6,6 +6,7 @@ import 'package:flutterlore/view/authentication/sign.dart';
 import 'package:flutterlore/view/authentication/validation.dart';
 import 'package:flutterlore/view/authentication/widget.dart';
 import 'package:flutterlore/view/authentication/auth.dart';
+import 'package:google_fonts/google_fonts.dart';
 class PhoneLogin extends StatefulWidget {
   const PhoneLogin({super.key});
 
@@ -34,8 +35,11 @@ class _PhoneLoginState extends State<PhoneLogin> {
         child: Center(
           child: Column(
             children: [
-              const Text("Loomlore",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 40)),
+               Text(
+          "Loom Lore",
+          style: GoogleFonts.berkshireSwash(
+              color: Color(0xff410502), fontSize: 24, fontWeight: FontWeight.bold),
+        ),
               const SizedBox(height: 100),
               Column(
                 children: [
@@ -69,7 +73,7 @@ class _PhoneLoginState extends State<PhoneLogin> {
                       _authservice.sendCode(context, otpcontroller.text);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromRGBO(134, 231, 24, 1),
+                      backgroundColor:Color(0xffCC8381),
                       minimumSize: const Size(200, 55),
                     ),
                     child: const Text("Continue",
