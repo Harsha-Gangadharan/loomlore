@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutterlore/firebase_options.dart';
+import 'package:flutterlore/sample.dart';
 import 'package:flutterlore/view/authentication/sign.dart';
+
 import 'package:firebase_core/firebase_core.dart';
 
 
@@ -25,7 +27,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primaryColor: Colors.blue
       ),
-      home: SignUp(),
+      home:  samplePage(),
+      // SignUp(),
     );
   }
 }
