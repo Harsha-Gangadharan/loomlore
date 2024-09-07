@@ -31,7 +31,7 @@ class _DesignPageState extends State<DesignPage> {
           alignment: Alignment.centerRight,
           children: [
             Image.asset(
-              'asset/create.png',
+              'asset/Create.png',
               height: 71,
               fit: BoxFit.cover,
             ),

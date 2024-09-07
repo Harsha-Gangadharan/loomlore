@@ -2,23 +2,22 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutterlore/view/authentication/validation.dart';
 import 'package:flutterlore/view/authentication/widget.dart';
-import 'package:flutterlore/view/home/bottomnavi.dart';
+import 'package:flutterlore/view/module2/packege.dart'; // Ensure this import is correct
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class DesignerLoginPage extends StatefulWidget {
+  const DesignerLoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<DesignerLoginPage> createState() => _DesignerLoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _DesignerLoginPageState extends State<DesignerLoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscureText = true;
-  String email = '', password = '';
 
   void _toggleVisibility() {
     setState(() {
@@ -26,28 +25,44 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
-  Future<void> userLogin() async {
+  Future<void> designerLogin() async {
     SharedPreferences preferences = await SharedPreferences.getInstance();
     try {
-      final credential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
-      preferences.setString('islogin', credential.user!.uid);
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      // Save user UID in SharedPreferences
+      await preferences.setString('islogin', credential.user!.uid);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Signed in successfully'),
         ),
       );
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Packages(indexNum: 0),
-          ));
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DesignerPackages(indexno: 0), // Ensure this is correct
+        ),
+      );
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Error signing in';
-      if (e.code == 'user-not-found') {
-        errorMessage = 'User not found';
-      } else if (e.code == 'wrong-password') {
-        errorMessage = 'Wrong password';
+      switch (e.code) {
+        case 'user-not-found':
+          errorMessage = 'No user found with this email.';
+          break;
+        case 'wrong-password':
+          errorMessage = 'Incorrect password. Please try again.';
+          break;
+        case 'invalid-email':
+          errorMessage = 'Invalid email format.';
+          break;
+        default:
+          errorMessage = 'An unexpected error occurred. Please try again.';
+          break;
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -57,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('An error occurred'),
+          content: Text('An unexpected error occurred. Please try again.'),
         ),
       );
     }
@@ -120,11 +135,13 @@ class _LoginPageState extends State<LoginPage> {
                       controller: _passwordController,
                       obscureText: _obscureText,
                       validator: Validator.validatePassword,
-                      onTapIcon: _toggleVisibility, // Handle password visibility toggle
+                      onTapIcon: _toggleVisibility,
                     ),
                     const SizedBox(height: 20),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // Add forgot password logic here
+                      },
                       child: const Text(
                         "Forgot password?",
                         style: TextStyle(color: Colors.blue, fontSize: 16),
@@ -136,11 +153,7 @@ class _LoginPageState extends State<LoginPage> {
                       child: ElevatedButton(
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
-                            setState(() {
-                              email = _emailController.text;
-                              password = _passwordController.text;
-                            });
-                            userLogin();
+                            designerLogin();
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -169,7 +182,9 @@ class _LoginPageState extends State<LoginPage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 30),
                       child: OutlinedButton.icon(
-                        onPressed: () {},
+                        onPressed: () {
+                          // Add Google sign-in logic here
+                        },
                         icon: const Icon(
                           Icons.g_translate,
                           color: Color(0xffCC8381),
@@ -194,7 +209,9 @@ class _LoginPageState extends State<LoginPage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 30),
                       child: OutlinedButton.icon(
-                        onPressed: () {},
+                        onPressed: () {
+                          // Add phone sign-in logic here
+                        },
                         icon: const Icon(
                           Icons.phone,
                           color: Color(0xffCC8381),

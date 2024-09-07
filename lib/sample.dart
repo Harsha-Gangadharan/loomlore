@@ -26,9 +26,9 @@ class _samplePageState extends State<samplePage> {
       appBar: AppBar(
         backgroundColor: Color.fromARGB(255, 13, 58, 102),
       ),
-      body:StreamBuilder(stream: a.collection('userprofile').snapshots(),
+      body:StreamBuilder(stream: a.collection('user_profile').snapshots(),
        builder: (context,snapshot){
-        final userProfile = snapshot.data !.docs;
+        final userProfile = snapshot.data!.docs;
 
         return ListView.builder(itemCount:userProfile.length ,itemBuilder: (context,index){
        final userData= userProfile[index].data() as Map<String, dynamic>;
@@ -45,6 +45,9 @@ class _samplePageState extends State<samplePage> {
       floatingActionButton: FloatingActionButton(onPressed: (){
         showalertBOx(context);
       },child: Icon(Icons.add),),
+      drawer: Drawer(
+        backgroundColor:Colors.amber,
+      ),
     );
   }
 //fuction for alert box
@@ -67,6 +70,7 @@ showalertBOx(context){
         }, child: Text("saved"))
       ],
     );
-  },);
+  },
+);
 }
 }

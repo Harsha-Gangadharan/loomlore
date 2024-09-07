@@ -7,7 +7,9 @@ class UserData extends StatelessWidget {
   final Color fillColor;
   final TextEditingController controller;
   final String? Function(String?)? validator;
- final TextInputType? keyboardType;
+  final TextInputType? keyboardType;
+  final VoidCallback? onTapIcon; // Add this callback for icon tapping functionality
+
   const UserData({
     Key? key,
     required this.hintext,
@@ -16,7 +18,8 @@ class UserData extends StatelessWidget {
     required this.fillColor,
     required this.controller,
     this.validator,
-     this.keyboardType,
+    this.keyboardType,
+    this.onTapIcon, // Initialize the callback
   }) : super(key: key);
 
   @override
@@ -25,11 +28,14 @@ class UserData extends StatelessWidget {
       controller: controller,
       obscureText: obscureText,
       validator: validator,
-       keyboardType: keyboardType,
+      keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: hintext,
-        labelStyle: TextStyle(fontSize: 18),
-        prefixIcon: icon,
+        labelStyle: const TextStyle(fontSize: 18),
+        prefixIcon: GestureDetector(
+          onTap: onTapIcon, // Attach the onTap event to the icon
+          child: icon,
+        ),
         filled: true,
         fillColor: fillColor,
         border: OutlineInputBorder(

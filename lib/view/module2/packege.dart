@@ -7,17 +7,20 @@ import 'package:flutterlore/view/home/home.dart';
 import 'package:flutterlore/view/home/location.dart';
 import 'package:flutterlore/view/home/runway.dart';
 import 'package:flutterlore/view/home/style.dart';
+import 'package:flutterlore/view/module2/adddesign.dart';
+import 'package:flutterlore/view/module2/deignerhom.dart';
+import 'package:flutterlore/view/module2/show.dart';
 
 
-class Packages extends StatefulWidget {
-  int indexNum;
-  Packages({Key? key, required this.indexNum}) : super(key: key);
+class DesignerPackages extends StatefulWidget {
+  int indexno;
+  DesignerPackages({Key? key, required this.indexno}) : super(key: key);
 
   @override
-  State<Packages> createState() => _PackagesState();
+  State<DesignerPackages> createState() => _DesignerPackagesState();
 }
 
-class _PackagesState extends State<Packages> with TickerProviderStateMixin {
+class _DesignerPackagesState extends State<DesignerPackages> with TickerProviderStateMixin {
   late final List<Widget> _pages;
   late final GlobalKey<CurvedNavigationBarState> _bottomNavigationKey;
 
@@ -28,10 +31,9 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _pages = [
-      HomePage(),
-      const DesignPage(),
-      const RunwayPage(),
-    const LocationPage(),
+    const DesignerHomePage(),
+    AddDesignPage(),
+    ShowPage(),
       // Add other pages here
     ];
 
@@ -41,10 +43,10 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 600),
     );
   }
-
+  
   void onTabTapped(int index) {
     setState(() {
-      widget.indexNum = index;
+      widget.indexno = index;
       _currentIndex = index;
     });
     revealAnimationController.reset();
@@ -61,9 +63,9 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
         index: _currentIndex,
         items: const <Widget>[
           Icon(Icons.home, size: 30),
-          Icon(Icons.style, size: 30),
+          Icon(Icons.add_box, size: 30),
           Icon(Icons.video_camera_back, size: 30),
-          Icon(Icons.location_on, size: 30),
+          
         ],
         color: Colors.white,
         buttonBackgroundColor: Colors.white,

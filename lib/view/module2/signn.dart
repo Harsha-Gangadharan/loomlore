@@ -1,24 +1,29 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutterlore/view/authentication/authservice.dart'; // Ensure this import is needed
+import 'package:flutterlore/view/authentication/login.dart';
+import 'package:flutterlore/view/authentication/phonelogin.dart';
 import 'package:flutterlore/view/authentication/validation.dart';
 import 'package:flutterlore/view/authentication/widget.dart';
 import 'package:flutterlore/view/home/bottomnavi.dart';
+import 'package:flutterlore/view/module2/loog.dart';
+import 'package:flutterlore/view/module2/packege.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
-
+class DesignerRegistrationPage extends StatefulWidget {
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<DesignerRegistrationPage> createState() => _DesignerRegistrationPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _DesignerRegistrationPageState extends State<DesignerRegistrationPage> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _emailIdController = TextEditingController();
   bool _obscureText = true;
-  String email = '', password = '';
 
   void _toggleVisibility() {
     setState(() {
@@ -26,39 +31,70 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
-  Future<void> userLogin() async {
-    SharedPreferences preferences = await SharedPreferences.getInstance();
+  Future<void> addFirebase(Map<String, dynamic> registeredUserInfoMap, String userId) async {
+    await FirebaseFirestore.instance
+        .collection('designeregistration')
+        .doc(userId)
+        .set(registeredUserInfoMap);
+  }
+
+  Future<void> designerRegistration() async {
+    if (!_formKey.currentState!.validate()) return; // Ensure form validation
+
     try {
-      final credential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
+      SharedPreferences preferences = await SharedPreferences.getInstance();
+
+      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailIdController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
       preferences.setString('islogin', credential.user!.uid);
+
+      String uid = credential.user!.uid;
+      Map<String, dynamic> registerInfoMap = {
+        "username": _usernameController.text.trim(),
+        "email": _emailIdController.text.trim(),
+        "password": _passwordController.text.trim(),
+        "image": '',
+        "id": uid,
+      };
+
+      await addFirebase(registerInfoMap, uid);
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Signed in successfully'),
+        SnackBar(content: Text('Registration successful')),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DesignerPackages(indexno: 0),
         ),
       );
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Packages(indexNum: 0),
-          ));
     } on FirebaseAuthException catch (e) {
-      String errorMessage = 'Error signing in';
-      if (e.code == 'user-not-found') {
-        errorMessage = 'User not found';
-      } else if (e.code == 'wrong-password') {
-        errorMessage = 'Wrong password';
+      String errorMessage;
+
+      switch (e.code) {
+        case 'weak-password':
+          errorMessage = 'The password provided is too weak.';
+          break;
+        case 'email-already-in-use':
+          errorMessage = 'An account already exists for that email.';
+          break;
+        case 'invalid-email':
+          errorMessage = 'The email address is badly formatted.';
+          break;
+        default:
+          errorMessage = 'An unknown error occurred. Please try again.';
       }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-        ),
+        SnackBar(content: Text(errorMessage)),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('An error occurred'),
-        ),
+        SnackBar(content: Text('An unexpected error occurred. Please try again.')),
       );
     }
   }
@@ -68,34 +104,28 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
-          children: [
-            Stack(
-              children: [
-                Container(
-                  height: MediaQuery.of(context).size.height * 0.4,
-                  decoration: const BoxDecoration(
-                    color: Color(0xffCC8381),
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(50),
-                      bottomRight: Radius.circular(50),
-                    ),
+          children: <Widget>[
+            Container(
+              height: 200,
+              decoration: const BoxDecoration(
+                color: Color(0xffCC8381),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(100),
+                  bottomRight: Radius.circular(100),
+                ),
+              ),
+              child: Center(
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.white,
+                  child: Icon(
+                    Icons.person,
+                    size: 50,
+                    color: Colors.grey.shade400,
                   ),
                 ),
-                Positioned(
-                  left: 35,
-                  top: 130,
-                  child: Text(
-                    'Welcome\nBack',
-                    style: GoogleFonts.poppins(
-                      fontSize: 33,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 50),
             Padding(
               padding: const EdgeInsets.all(20.0),
               child: Form(
@@ -103,12 +133,30 @@ class _LoginPageState extends State<LoginPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: <Widget>[
+                    Center(
+                      child: Text(
+                        'Sign Up',
+                        style: GoogleFonts.poppins(
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    UserData(
+                      hintext: 'Username',
+                      icon: const Icon(Icons.account_circle),
+                      fillColor: Colors.white,
+                      controller: _usernameController,
+                      validator: Validator.validateUsername,
+                    ),
                     const SizedBox(height: 20),
                     UserData(
                       hintext: 'Email',
                       icon: const Icon(Icons.email),
                       fillColor: Colors.white,
-                      controller: _emailController,
+                      controller: _emailIdController,
                       validator: Validator.validateEmail,
                     ),
                     const SizedBox(height: 20),
@@ -120,29 +168,13 @@ class _LoginPageState extends State<LoginPage> {
                       controller: _passwordController,
                       obscureText: _obscureText,
                       validator: Validator.validatePassword,
-                      onTapIcon: _toggleVisibility, // Handle password visibility toggle
-                    ),
-                    const SizedBox(height: 20),
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text(
-                        "Forgot password?",
-                        style: TextStyle(color: Colors.blue, fontSize: 16),
-                      ),
+                      onTapIcon: _toggleVisibility,
                     ),
                     const SizedBox(height: 20),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 30),
                       child: ElevatedButton(
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            setState(() {
-                              email = _emailController.text;
-                              password = _passwordController.text;
-                            });
-                            userLogin();
-                          }
-                        },
+                        onPressed: designerRegistration,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xffCC8381),
                           minimumSize: const Size(double.infinity, 50),
@@ -151,7 +183,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         child: Text(
-                          "Login",
+                          "Sign Up",
                           style: GoogleFonts.poppins(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -194,7 +226,14 @@ class _LoginPageState extends State<LoginPage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 30),
                       child: OutlinedButton.icon(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PhoneLogin(),
+                            ),
+                          );
+                        },
                         icon: const Icon(
                           Icons.phone,
                           color: Color(0xffCC8381),
@@ -215,6 +254,22 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 20),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const DesignerLoginPage(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        "Already have an account?",
+                        style: TextStyle(color: Colors.blue, fontSize: 16),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                   ],
                 ),
               ),

@@ -1,57 +1,112 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutterlore/view/authentication/login.dart';
-import 'package:flutterlore/view/home/creation.dart';
-import 'package:flutterlore/view/home/homewidget.dart'; // Assuming WidgetHome is defined here
-import 'package:flutterlore/view/home/notificationpage.dart';
-import 'package:flutterlore/view/home/settings.dart';
-import 'package:flutterlore/view/home/wishlist.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+import 'package:flutterlore/view/home/creation.dart';
+import 'package:flutterlore/view/home/homewidget.dart';
+import 'package:flutterlore/view/home/notificationpage.dart';
+import 'package:flutterlore/view/home/wishlist.dart';
+
+class DesignerHomePage extends StatefulWidget {
+  const DesignerHomePage({Key? key}) : super(key: key);
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<DesignerHomePage> createState() => _DesignerHomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  final WidgetHome widgetHome = WidgetHome(); // Instance of WidgetHome
+class _DesignerHomePageState extends State<DesignerHomePage> {
+  WidgetHome a = WidgetHome();
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final User? currentUser = FirebaseAuth.instance.currentUser;
- final FirebaseAuth _auth = FirebaseAuth.instance;
+String selectedCategory = "All Items"; 
+  // Method to get user profile by ID
+  Future<DocumentSnapshot<Map<String, dynamic>>> getSelectedUserProfile(String id) async {
+    try {
+      return await firestore
+          .collection("designeregistration")
+          .doc(id)
+          .get();
+    } catch (e) {
+      // Handle errors here
+      print("Error getting user profile: $e");
+      throw e;
+    }
+  }
 
-  String selectedCategory = "All Items"; // Default selected category
+  // Stream to get all posts filtered by category (if necessary)
+  Stream<QuerySnapshot<Map<String, dynamic>>> getAllPosts(String selectedCategory) {
+    if (selectedCategory.isEmpty) {
+      // Return an empty stream if no category is selected
+      return Stream.empty();
+    } else {
+      return firestore
+          .collection("productdetails")
+          .where('category', isEqualTo: selectedCategory) // Filter by category
+          .snapshots();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: widgetHome.buildAppBar(context), // Use widgetHome to call AppBar
+      appBar: a.buildAppBar(context),
       drawer: buildDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            widgetHome.buildGreeting(), // Greeting
-            widgetHome.buildSearchBar(), // Search Bar
+            StreamBuilder<DocumentSnapshot>(
+              stream: firestore
+                  .collection('designeregistration')
+                  .doc(currentUser?.uid)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.hasError) {
+                  return const Center(child: Text('No data available'));
+                }
+                DocumentSnapshot data = snapshot.data!;
+                if (!data.exists) {
+                  return const Center(child: Text('User not found'));
+                }
+
+                String userName = data['username'] ?? 'No Name';
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Hello, Welcome 👋", style: GoogleFonts.poppins(fontSize: 20)),
+                    Text(userName,
+                        style: GoogleFonts.poppins(
+                            fontSize: 26, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 20),
+                  ],
+                );
+              },
+            ),
+            a.buildSearchBar(),
             const SizedBox(height: 20),
-            widgetHome.buildCategoryTabs((category) {
+              const SizedBox(height: 20),
+            a.buildCategoryTabs((category) {
               setState(() {
                 selectedCategory = category; // Set selected category
               });
             }, selectedCategory), // Pass callback and selected category
             const SizedBox(height: 20),
-            Expanded(child: widgetHome.buildProductGrid(selectedCategory)), // Show products based on category
+            Expanded(child: a.buildProductGrid(selectedCategory)),
           ],
         ),
       ),
     );
   }
 
-  Drawer buildDrawer(){
+  
+   Drawer buildDrawer(){
     return Drawer(
       child: SingleChildScrollView(
         child: Column(
@@ -131,16 +186,6 @@ class _HomePageState extends State<HomePage> {
                 _showComplaintDialog(context);
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SettingsPage()),
-                );
-              },
-            ),
             const SizedBox(height: 50),
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -153,7 +198,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 onPressed: () {
-                   _showLogoutBottomSheet();
                   // Implement logout functionality
                 },
                 child: const Text('Logout'),
@@ -163,58 +207,7 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
-    
   }
-void _showLogoutBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.3,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                'Are you sure you want to logout?',
-                style: TextStyle(fontSize: 18),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: () async {
-                      SharedPreferences preferences =
-                          await SharedPreferences.getInstance();
-                      await _auth.signOut();
-                      preferences.clear();
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => LoginPage(),
-                        ),
-                        (route) => false,
-                      );
-                      print('Logout confirmed');
-                    },
-                    child: const Text('Logout'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Cancel'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-
 
   void _showComplaintDialog(BuildContext context) {
     final TextEditingController complaintController = TextEditingController();
@@ -267,3 +260,5 @@ void _showLogoutBottomSheet() {
     }
   }
 }
+  
+

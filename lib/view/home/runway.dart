@@ -42,7 +42,7 @@ class _RunwayPageState extends State<RunwayPage> {
               imageUrl: 'asset/p1.jpeg', 
               username: ['Harsha', 'Vismaya', 'Thejas', 'Chethan'][index],  
               likes: ['41k', '40k', '39k', '38k'][index], 
-              profilePic: 'asset/men.jpeg', image: 'asset/fashion.png',
+              profilePic: 'asset/eric.jpeg', image: 'asset/fashion.png',
             );
           },
         ),
