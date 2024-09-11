@@ -31,52 +31,57 @@ class _AddDesignPageState extends State<AddDesignPage> {
   String selectedCategory = '';
 
   Future<void> productTable() async {
-    try {
-      String uid = _auth.currentUser!.uid;
-      var docRef = FirebaseFirestore.instance.collection('productdetails').doc();
+  try {
+    String uid = _auth.currentUser!.uid;
+    var docRef = FirebaseFirestore.instance.collection('productdetails').doc();
 
-      String docId = docRef.id;
+    String docId = docRef.id;
 
-      // Save product details to Firestore
-      await docRef.set({
-       
-        'description': descriptionController.text,
-        'productimage': '',
-        'uid': uid,
-        'category': selectedCategory,
-        'productId': docId,
-        'Likes': []
-      });
+    // Initialize image URL variable
+    String imageUrl = '';
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product added successfully')),
-      );
+    // Upload image to Firebase Storage if present
+    if (uploadImage != null) {
+      SettableMetadata metadata = SettableMetadata(contentType: 'image/jpeg');
+      UploadTask uploadTask = FirebaseStorage.instance
+          .ref()
+          .child('productimage/product_$docId')
+          .putFile(uploadImage!, metadata);
 
-      // Upload image to Firebase Storage if present
-      if (uploadImage != null) {
-        SettableMetadata metadata = SettableMetadata(contentType: 'image/jpeg');
-        UploadTask uploadTask = FirebaseStorage.instance
-            .ref()
-            .child('productimage/product_$docId')
-            .putFile(uploadImage!, metadata);
+      TaskSnapshot snapshot = await uploadTask;
 
-        TaskSnapshot snapshot = await uploadTask;
-        String url = await snapshot.ref.getDownloadURL();
-
-        // Update Firestore with the image URL
-        await docRef.update({'productimage': url});
+      // Ensure upload was successful
+      if (snapshot.state == TaskState.success) {
+        imageUrl = await snapshot.ref.getDownloadURL();
+      } else {
+        throw ('Image upload failed.');
       }
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => DesignerPackages(indexno: 0)),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add product: $e')),
-      );
     }
+
+    // Save product details to Firestore, including the image URL
+    await docRef.set({
+      'description': descriptionController.text,
+      'productimage': imageUrl,
+      'uid': uid,
+      'category': selectedCategory,
+      'productId': docId,
+      'Likes': [],
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Product added successfully')),
+    );
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => DesignerPackages(indexno: 0)),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to add product: $e')),
+    );
   }
+}
 
   Future<void> _pickedImage(ImageSource source) async {
     final pickedImage = await ImagePicker().pickImage(source: source);

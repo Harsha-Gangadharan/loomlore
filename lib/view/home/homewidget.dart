@@ -7,33 +7,62 @@ class WidgetHome {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final User? currentUser = FirebaseAuth.instance.currentUser;
 
-  AppBar buildAppBar(BuildContext context) {
-    return AppBar(
-      elevation: 0,
-      backgroundColor: Colors.white,
-      title: Row(
-        children: [
-          Text(
-            "Loom Lore",
-            style: GoogleFonts.berkshireSwash(
-              color: const Color(0xff410502),
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+ AppBar buildAppBar(BuildContext context) {
+  return AppBar(
+    elevation: 0,
+    backgroundColor: Colors.white,
+    title: Row(
+      children: [
+        Text(
+          "Loom Lore",
+          style: GoogleFonts.berkshireSwash(
+            color: const Color(0xff410502),
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
           ),
-          Spacer(),
-          IconButton(
-            icon: Icon(Icons.telegram, color: Colors.black),
-            onPressed: () {
-              // Define ChatPage or navigate to it
-            },
-          ),
-          SizedBox(width: 10),
-          CircleAvatar(backgroundImage: AssetImage("asset/profile.jpg")),
-        ],
-      ),
-    );
-  }
+        ),
+        const Spacer(),
+        IconButton(
+          icon: const Icon(Icons.telegram, color: Colors.black),
+          onPressed: () {
+            // Define ChatPage or navigate to it
+          },
+        ),
+        const SizedBox(width: 10),
+        StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('useregistration') // Correct collection name
+              .doc(FirebaseAuth.instance.currentUser?.uid) // Use current user's ID
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const CircleAvatar(
+                backgroundColor: Colors.grey,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                ),
+              );
+            }
+            if (!snapshot.hasData || snapshot.hasError) {
+              return const CircleAvatar(
+                backgroundImage: AssetImage("asset/profile.jpg"), // Fallback image
+              );
+            }
+            DocumentSnapshot data = snapshot.data!;
+            String userImage = data['image'] ?? ''; // Fetch the image URL
+
+            return CircleAvatar(
+              backgroundColor: Colors.grey[200], // Placeholder color
+              backgroundImage: userImage.isNotEmpty
+                  ? NetworkImage(userImage) // Display image from Firestore
+                  : const AssetImage("asset/profile.jpg") as ImageProvider, // Fallback image
+            );
+          },
+        ),
+      ],
+    ),
+  );
+}
 
   Widget buildGreeting() {
     return StreamBuilder<DocumentSnapshot>(

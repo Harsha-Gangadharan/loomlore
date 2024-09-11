@@ -1,242 +1,225 @@
+import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutterlore/view/home/bottomnavi.dart';
+import 'package:flutterlore/view/home/creation.dart';
+import 'package:flutterlore/view/module2/packege.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class DesignPage extends StatefulWidget {
-  const DesignPage({super.key});
-
   @override
   State<DesignPage> createState() => _DesignPageState();
 }
 
 class _DesignPageState extends State<DesignPage> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>(); // Define a GlobalKey for the Scaffold
+  final _auth = FirebaseAuth.instance;
+  final descriptionController = TextEditingController();
+  File? uploadImage;
+  List<bool> isSelected = [false, false, false, false, false];
+  String selectedCategory = '';
+  String status = ''; // This will hold 'public' or 'private'
 
-  String selectedGender = 'Female';
-  String selectedTop = '';
-  String selectedBottom = '';
-  Color selectedColor = Colors.white;
-  String selectedDesign = '';
+  bool _isFormValid() {
+    return selectedCategory.isNotEmpty && descriptionController.text.isNotEmpty;
+  }
+
+  Future<void> productTable() async {
+    try {
+      String uid = _auth.currentUser!.uid;
+      var docRef = FirebaseFirestore.instance.collection('userstyles').doc();
+      String docId = docRef.id;
+
+      // Initialize image URL variable
+      String imageUrl = '';
+
+      // Upload image to Firebase Storage if present
+      if (uploadImage != null) {
+        SettableMetadata metadata = SettableMetadata(contentType: 'image/jpeg');
+        UploadTask uploadTask = FirebaseStorage.instance
+            .ref()
+            .child('styleimage/product_$docId')
+            .putFile(uploadImage!, metadata);
+
+        TaskSnapshot snapshot = await uploadTask;
+
+        // Ensure upload was successful
+        if (snapshot.state == TaskState.success) {
+          imageUrl = await snapshot.ref.getDownloadURL();
+        } else {
+          throw ('Image upload failed.');
+        }
+      }
+
+      // Save product details to Firestore, including the image URL and status (public/private)
+      await docRef.set({
+        'description': descriptionController.text,
+        'productimage': imageUrl,
+        'uid': uid,
+        'category': selectedCategory,
+        'productId': docId,
+        'Likes': [],
+        'status': status, // Save the status as 'public' or 'private'
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product added successfully')),
+      );
+
+      // Navigate based on the status
+      if (status == 'public') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => Packages(indexNum: 2)),
+        );
+      } else if (status == 'private') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MyCreationPage()),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add product: $e')),
+      );
+    }
+  }
+
+  Future<void> _pickedImage(ImageSource source) async {
+    final pickedImage = await ImagePicker().pickImage(source: source);
+    if (pickedImage == null) return;
+    setState(() {
+      uploadImage = File(pickedImage.path);
+    });
+  }
+
+  void _showImageSourceActionSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: <Widget>[
+            ListTile(
+              leading: Icon(Icons.photo_library),
+              title: Text('Photo Library'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _pickedImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.photo_camera),
+              title: Text('Camera'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _pickedImage(ImageSource.camera);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey, // Assign the GlobalKey to the Scaffold
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {},
-        ),
-        title: Stack(
-          alignment: Alignment.centerRight,
-          children: [
-            Image.asset(
-              'asset/Create.png',
-              height: 71,
-              fit: BoxFit.cover,
-            ),
-            Positioned(
-              left: 0,
-              child: Container(
-                padding: EdgeInsets.all(1),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color.fromARGB(255, 70, 42, 2),
-                ),
-                child: IconButton(
-                  icon: Icon(Icons.tune, color: Color.fromARGB(255, 242, 241, 241)),
-                  onPressed: () {
-                    _scaffoldKey.currentState?.openDrawer(); // Open the drawer using the GlobalKey
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-        centerTitle: true,
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Color(0xffCC8381),
-              ),
-              child: Text(
-                'Menu',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Gender selection
-                  Text("Select Your Gender", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Radio(
-                        value: 'Female',
-                        groupValue: selectedGender,
-                        onChanged: (value) {
-                          setState(() {
-                            selectedGender = value!;
-                          });
-                        },
-                      ),
-                      Text("Female"),
-                      Radio(
-                        value: 'Male',
-                        groupValue: selectedGender,
-                        onChanged: (value) {
-                          setState(() {
-                            selectedGender = value!;
-                          });
-                        },
-                      ),
-                      Text("Male"),
-                    ],
-                  ),
-                  SizedBox(height: 20),
-
-                  // Top selection
-                  Text("Select The Top", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Wrap(
-                    spacing: 10,
-                    children: [
-                      for (var top in ['Top1', 'Top2', 'Top3', 'Top4', 'Top5']) // Replace with actual images/icons
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              selectedTop = top;
-                            });
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: selectedTop == top ?Color(0xffCC8381) : Colors.grey,
-                              ),
-                            ),
-                            child: Icon(Icons.check_box_outline_blank), // Replace with your image/icon
-                          ),
-                        ),
-                    ],
-                  ),
-                  SizedBox(height: 20),
-
-                  // Bottom selection
-                  Text("Select The Bottom", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Wrap(
-                    spacing: 10,
-                    children: [
-                      for (var bottom in ['Bottom1', 'Bottom2', 'Bottom3', 'Bottom4']) // Replace with actual images/icons
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              selectedBottom = bottom;
-                            });
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: selectedBottom == bottom ? Color(0xffCC8381) : Colors.grey,
-                              ),
-                            ),
-                            child: Icon(Icons.check_box_outline_blank), // Replace with your image/icon
-                          ),
-                        ),
-                    ],
-                  ),
-                  SizedBox(height: 20),
-
-                  // Color selection
-                  Text("Select The Colour", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Wrap(
-                    spacing: 10,
-                    children: [
-                      for (var color in [
-                        Colors.black,
-                        Colors.white,
-                        Colors.red,
-                        Colors.green,
-                        Colors.blue,
-                        Colors.yellow,
-                        // Add more colors here
-                      ])
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              selectedColor = color;
-                            });
-                          },
-                          child: Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: color,
-                              border: Border.all(
-                                color: selectedColor == color ? Color(0xffCC8381) : Colors.grey,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  SizedBox(height: 20),
-
-                  // Design selection
-                  Text("Select The Design", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Wrap(
-                    spacing: 10,
-                    children: [
-                      for (var design in ['Design1', 'Design2', 'Design3', 'Design4']) // Replace with actual designs
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              selectedDesign = design;
-                            });
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: selectedDesign == design ? Color(0xffCC8381) : Colors.grey,
-                              ),
-                            ),
-                            child: Icon(Icons.check_box_outline_blank), // Replace with your image/design
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
+        backgroundColor: Color(0xffCC8381),
+        title: Text(
+          'ADD DESIGN',
+          style: GoogleFonts.inknutAntiqua(
+            fontSize: 26,
+            color: Color.fromARGB(255, 14, 14, 14),
+          ),
         ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 20),
-            TextField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Enter Your Design Name',
+            GestureDetector(
+              onTap: () {
+                _showImageSourceActionSheet(context);
+              },
+              child: Stack(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    height: 280,
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        fit: BoxFit.cover,
+                        image: uploadImage != null
+                            ? FileImage(uploadImage!)
+                            : AssetImage('asset/post.jpg') as ImageProvider<Object>,
+                      ),
+                      shape: BoxShape.rectangle,
+                      color: Colors.grey[300],
+                    ),
+                  ),
+                  Positioned(
+                    right: 10,
+                    bottom: 10,
+                    child: IconButton(
+                      onPressed: () {
+                        _showImageSourceActionSheet(context);
+                      },
+                      icon: Icon(Icons.add_a_photo_rounded),
+                      color: Colors.black,
+                      iconSize: 30,
+                    ),
+                  ),
+                ],
               ),
-              textAlign: TextAlign.center,
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 10),
+            SizedBox(height: 10),
             Expanded(
-              child: Center(
-                child: Image(image: AssetImage("asset/gown.jpg")),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(16),
+                      child: TextField(
+                        controller: descriptionController,
+                        decoration: InputDecoration(
+                          hintText: 'Enter description',
+                          labelText: 'Description',
+                        ),
+                        maxLines: null,
+                      ),
+                    ),
+                    const SizedBox(height: 20.0),
+                    Wrap(
+                      spacing: 20.0,
+                      runSpacing: 20.0,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        for (int i = 0; i < categories.length; i++)
+                          ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _selectCategory(i, categories[i]);
+                              });
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isSelected[i]
+                                  ? Color(0xffCC8381)
+                                  : const Color.fromARGB(142, 123, 120, 121),
+                            ),
+                            child: Text(
+                              categories[i],
+                              style: TextStyle(color: Colors.black),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
             SizedBox(height: 20),
@@ -244,12 +227,28 @@ class _DesignPageState extends State<DesignPage> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 ElevatedButton(
-                  onPressed: () {},
-                  child: Text('Display'),
+                  onPressed: () {
+                    if (_isFormValid()) {
+                      setState(() {
+                        status = 'public'; // Set status to public
+                      });
+                      productTable();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Please fill all required fields.')),
+                      );
+                    }
+                  },
+                  child: Text('Publish'),
                 ),
-                OutlinedButton(
-                  onPressed: () {},
-                  child: Text('Keep Private'),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      status = 'private'; // Set status to private
+                    });
+                    productTable();
+                  },
+                  child: Text('Private'),
                 ),
               ],
             ),
@@ -257,5 +256,20 @@ class _DesignPageState extends State<DesignPage> {
         ),
       ),
     );
+  }
+
+  final List<String> categories = [
+    'officewear',
+    'party wear',
+    'casual wear',
+    'western',
+    'Traditional',
+  ];
+
+  void _selectCategory(int index, String category) {
+    for (int buttonIndex = 0; buttonIndex < isSelected.length; buttonIndex++) {
+      isSelected[buttonIndex] = buttonIndex == index;
+    }
+    selectedCategory = category;
   }
 }

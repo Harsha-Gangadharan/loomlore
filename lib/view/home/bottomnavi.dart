@@ -1,16 +1,11 @@
-import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
-import 'package:flutter/material.dart';
-
-import 'package:circular_reveal_animation/circular_reveal_animation.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+import 'package:flutter/material.dart';
 import 'package:flutterlore/view/home/home.dart';
 import 'package:flutterlore/view/home/location.dart';
 import 'package:flutterlore/view/home/runway.dart';
 import 'package:flutterlore/view/home/style.dart';
-
-
 class Packages extends StatefulWidget {
-  int indexNum;
+  final int indexNum; // This will be passed as a parameter to set the initial page
   Packages({Key? key, required this.indexNum}) : super(key: key);
 
   @override
@@ -21,19 +16,21 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
   late final List<Widget> _pages;
   late final GlobalKey<CurvedNavigationBarState> _bottomNavigationKey;
 
-  int _currentIndex = 0;
   late final AnimationController revealAnimationController;
+  int _currentIndex = 0; // This will track the currently selected index
 
   @override
   void initState() {
     super.initState();
     _pages = [
       HomePage(),
-      const DesignPage(),
+      DesignPage(),
       const RunwayPage(),
-    const LocationPage(),
-      // Add other pages here
+      LocationPage(),
     ];
+
+    // Initialize the _currentIndex with the passed indexNum
+    _currentIndex = widget.indexNum;
 
     _bottomNavigationKey = GlobalKey<CurvedNavigationBarState>();
     revealAnimationController = AnimationController(
@@ -44,8 +41,7 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
 
   void onTabTapped(int index) {
     setState(() {
-      widget.indexNum = index;
-      _currentIndex = index;
+      _currentIndex = index; // Set the current index to the selected tab
     });
     revealAnimationController.reset();
     revealAnimationController.forward();
@@ -55,10 +51,10 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      body: _pages[_currentIndex],
+      body: _pages[_currentIndex], // Display the page corresponding to the selected index
       bottomNavigationBar: CurvedNavigationBar(
         key: _bottomNavigationKey,
-        index: _currentIndex,
+        index: _currentIndex, // Make sure this uses _currentIndex
         items: const <Widget>[
           Icon(Icons.home, size: 30),
           Icon(Icons.style, size: 30),
@@ -70,7 +66,7 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
         backgroundColor: const Color(0xffCC8381),
         animationCurve: Curves.easeInOut,
         animationDuration: const Duration(milliseconds: 600),
-        onTap: onTabTapped,
+        onTap: onTabTapped, // Use the onTabTapped function to handle navigation
       ),
     );
   }

@@ -50,121 +50,125 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+Drawer buildDrawer() {
+  return Drawer(
+    child: SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('useregistration') // Correct collection name
+                  .doc(FirebaseAuth.instance.currentUser?.uid) // Use current user's ID
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.hasError) {
+                  return const Center(child: Text('No data available'));
+                }
+                DocumentSnapshot data = snapshot.data!;
+                if (!data.exists) {
+                  return const Center(child: Text('User not found'));
+                }
 
-  Drawer buildDrawer(){
-    return Drawer(
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: StreamBuilder<DocumentSnapshot>(
-                stream: firestore
-                    .collection('useregistration') // Correct collection name
-                    .doc(currentUser?.uid) // Use current user's ID
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (!snapshot.hasData || snapshot.hasError) {
-                    return const Center(child: Text('No data available'));
-                  }
-                  DocumentSnapshot data = snapshot.data!;
-                  if (!data.exists) {
-                    return const Center(child: Text('User not found'));
-                  }
-                  // Access data fields here
-                  String userName = data['username'] ?? 'No Name';
-                  String userEmail = data['email'] ?? 'No Email';
+                // Access data fields here
+                String userName = data['username'] ?? 'No Name';
+                String userEmail = data['email'] ?? 'No Email';
+                String userImage = data['image'] ?? ''; // Fetch the image URL
 
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const CircleAvatar(
-                        radius: 40,
-                        backgroundImage: AssetImage("asset/profile.jpg"),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        userName,
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        userEmail,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                        style: const TextStyle(fontSize: 14, color: Colors.grey),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.star),
-              title: const Text('My Creation'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => MyCreationPage()),
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.grey[200], // Placeholder color
+                      backgroundImage: userImage.isNotEmpty
+                          ? NetworkImage(userImage) // Display image from Firestore
+                          : const AssetImage("asset/profile.jpg") as ImageProvider, // Fallback image
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      userName,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      userEmail,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                  ],
                 );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.favorite),
-              title: const Text('Wishlist'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => WishlistPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.chat),
-              title: const Text('Complaints'),
-              onTap: () {
-                _showComplaintDialog(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SettingsPage()),
-                );
-              },
-            ),
-            const SizedBox(height: 50),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xffd9a0a0),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.star),
+            title: const Text('My Creation'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => MyCreationPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.favorite),
+            title: const Text('Wishlist'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => WishlistPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.chat),
+            title: const Text('Complaints'),
+            onTap: () {
+              _showComplaintDialog(context);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text('Settings'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingsPage()),
+              );
+            },
+          ),
+          const SizedBox(height: 50),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xffd9a0a0),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                onPressed: () {
-                   _showLogoutBottomSheet();
-                  // Implement logout functionality
-                },
-                child: const Text('Logout'),
               ),
+              onPressed: () {
+                _showLogoutBottomSheet();
+                // Implement logout functionality
+              },
+              child: const Text('Logout'),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-    
-  }
+    ),
+  );
+}
+
 void _showLogoutBottomSheet() {
     showModalBottomSheet(
       context: context,
