@@ -254,20 +254,21 @@ void _showLogoutBottomSheet() {
       },
     );
   }
-
-  void _submitComplaint(String complaint) {
-    if (currentUser != null) {
-      firestore
-          .collection('complaints')
-          .doc(currentUser!.uid) // Use current user's ID as document ID
-          .set({
-        'complaint': complaint,
-        'timestamp': FieldValue.serverTimestamp(),
-      }).then((value) {
-        // Handle success (e.g., show a success message)
-      }).catchError((error) {
-        // Handle error (e.g., show an error message)
-      });
-    }
+void _submitComplaint(String complaint) {
+  if (currentUser != null) {
+    firestore
+        .collection('complaints')
+        .doc(currentUser!.uid) // Use current user's ID as document ID
+        .set({
+      'complaint': complaint,
+      'timestamp': FieldValue.serverTimestamp(),
+      'userId': currentUser!.uid, // Store current user ID in a field
+    }).then((value) {
+      // Handle success (e.g., show a success message)
+    }).catchError((error) {
+      // Handle error (e.g., show an error message)
+    });
   }
+}
+
 }

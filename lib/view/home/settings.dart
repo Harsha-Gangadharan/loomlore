@@ -50,20 +50,7 @@ class SettingsPage extends StatelessWidget {
               );
             },
           ),
-          ListTile(
-            leading: const FaIcon(FontAwesomeIcons.whatsapp),  // WhatsApp icon
-            title: const Text('Share via WhatsApp'),
-            onTap: () {
-              _shareViaWhatsApp();
-            },
-          ),
-          ListTile(
-            leading: const FaIcon(FontAwesomeIcons.instagram),  // Instagram icon
-            title: const Text('Share via Instagram'),
-            onTap: () {
-              _shareViaInstagram();
-            },
-          ),
+         
         ],
       ),
     );

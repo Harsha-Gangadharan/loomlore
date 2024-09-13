@@ -1,29 +1,37 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutterlore/view/authentication/authservice.dart'; // Ensure this import is needed
-import 'package:flutterlore/view/authentication/login.dart';
 import 'package:flutterlore/view/authentication/phonelogin.dart';
 import 'package:flutterlore/view/authentication/validation.dart';
 import 'package:flutterlore/view/authentication/widget.dart';
-import 'package:flutterlore/view/home/bottomnavi.dart';
 import 'package:flutterlore/view/module2/loog.dart';
 import 'package:flutterlore/view/module2/packege.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+
+import '../home/bottomnavi.dart';
 
 class DesignerRegistrationPage extends StatefulWidget {
+  const DesignerRegistrationPage({super.key});
+
   @override
   State<DesignerRegistrationPage> createState() => _DesignerRegistrationPageState();
 }
 
 class _DesignerRegistrationPageState extends State<DesignerRegistrationPage> {
   final _formKey = GlobalKey<FormState>();
-
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _emailIdController = TextEditingController();
   bool _obscureText = true;
+  File? selectedImage;
+  String email = '';
+  String password = '';
 
   void _toggleVisibility() {
     setState(() {
@@ -31,39 +39,55 @@ class _DesignerRegistrationPageState extends State<DesignerRegistrationPage> {
     });
   }
 
-  Future<void> addFirebase(Map<String, dynamic> registeredUserInfoMap, String userId) async {
-    await FirebaseFirestore.instance
-        .collection('designeregistration')
-        .doc(userId)
-        .set(registeredUserInfoMap);
+  Future<void> _pickImage(ImageSource source) async {
+    final pickedImage = await ImagePicker().pickImage(source: source);
+    if (pickedImage == null) return;
+    setState(() {
+      selectedImage = File(pickedImage.path);
+    });
   }
 
-  Future<void> designerRegistration() async {
-    if (!_formKey.currentState!.validate()) return; // Ensure form validation
+  Future<void> _uploadUserDetails(String uid) async {
+    String imageUrl = '';
 
+    if (selectedImage != null) {
+      // Upload image to Firebase Storage
+      UploadTask uploadTask = FirebaseStorage.instance
+          .ref()
+          .child('userimages/$uid')
+          .putFile(selectedImage!);
+
+      TaskSnapshot snapshot = await uploadTask;
+      imageUrl = await snapshot.ref.getDownloadURL();
+    }
+
+    // Save user details in Firestore
+    await FirebaseFirestore.instance.collection('designeregistration').doc(uid).set({
+      "username": _usernameController.text,
+      "email": _emailIdController.text,
+      "password": _passwordController.text,
+      "image": imageUrl,
+      "id": uid,
+    });
+  }
+
+  Future<void> registration() async {
     try {
       SharedPreferences preferences = await SharedPreferences.getInstance();
 
-      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailIdController.text.trim(),
-        password: _passwordController.text.trim(),
+      final credential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
       );
 
-      preferences.setString('islogin', credential.user!.uid);
-
       String uid = credential.user!.uid;
-      Map<String, dynamic> registerInfoMap = {
-        "username": _usernameController.text.trim(),
-        "email": _emailIdController.text.trim(),
-        "password": _passwordController.text.trim(),
-        "image": '',
-        "id": uid,
-      };
+      preferences.setString('islogin', uid);
 
-      await addFirebase(registerInfoMap, uid);
+      await _uploadUserDetails(uid);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Registration successful')),
+        const SnackBar(content: Text('Registration Successful')),
       );
 
       Navigator.pushReplacement(
@@ -73,28 +97,14 @@ class _DesignerRegistrationPageState extends State<DesignerRegistrationPage> {
         ),
       );
     } on FirebaseAuthException catch (e) {
-      String errorMessage;
-
-      switch (e.code) {
-        case 'weak-password':
-          errorMessage = 'The password provided is too weak.';
-          break;
-        case 'email-already-in-use':
-          errorMessage = 'An account already exists for that email.';
-          break;
-        case 'invalid-email':
-          errorMessage = 'The email address is badly formatted.';
-          break;
-        default:
-          errorMessage = 'An unknown error occurred. Please try again.';
+      String message = 'An error occurred';
+      if (e.code == 'weak-password') {
+        message = 'The password provided is too weak.';
+      } else if (e.code == 'email-already-in-use') {
+        message = 'The account already exists for that email.';
       }
-
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An unexpected error occurred. Please try again.')),
+        SnackBar(content: Text(message)),
       );
     }
   }
@@ -115,13 +125,16 @@ class _DesignerRegistrationPageState extends State<DesignerRegistrationPage> {
                 ),
               ),
               child: Center(
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.white,
-                  child: Icon(
-                    Icons.person,
-                    size: 50,
-                    color: Colors.grey.shade400,
+                child: GestureDetector(
+                  onTap: () => _pickImage(ImageSource.gallery),
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.white,
+                    backgroundImage:
+                        selectedImage != null ? FileImage(selectedImage!) : null,
+                    child: selectedImage == null
+                        ? Icon(Icons.person, size: 50, color: Colors.grey.shade400)
+                        : null,
                   ),
                 ),
               ),
@@ -174,7 +187,23 @@ class _DesignerRegistrationPageState extends State<DesignerRegistrationPage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 30),
                       child: ElevatedButton(
-                        onPressed: designerRegistration,
+                        onPressed: () {
+                          if (_formKey.currentState!.validate()) {
+                            setState(() {
+                              email = _emailIdController.text;
+                              password = _passwordController.text;
+                            });
+                            registration();
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Invalid username, password, or email'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xffCC8381),
                           minimumSize: const Size(double.infinity, 50),
@@ -230,8 +259,7 @@ class _DesignerRegistrationPageState extends State<DesignerRegistrationPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const PhoneLogin(),
-                            ),
+                                builder: (context) => const PhoneLogin()),
                           );
                         },
                         icon: const Icon(
@@ -256,20 +284,42 @@ class _DesignerRegistrationPageState extends State<DesignerRegistrationPage> {
                     ),
                     const SizedBox(height: 20),
                     TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const DesignerLoginPage(),
-                          ),
-                        );
-                      },
+                      onPressed: () {},
                       child: const Text(
                         "Already have an account?",
                         style: TextStyle(color: Colors.blue, fontSize: 16),
                       ),
                     ),
                     const SizedBox(height: 10),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 30),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const DesignerLoginPage(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xffCC8381),
+                          minimumSize: const Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          'Login',
+                          style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),

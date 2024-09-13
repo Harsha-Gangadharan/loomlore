@@ -179,83 +179,104 @@ class WidgetHome {
     );
   }
 
+ 
   Widget buildProductCard(Map<String, dynamic> productData) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            spreadRadius: 1,
-            blurRadius: 5,
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              child: Image.network(
-                productData["productimage"],
-                fit: BoxFit.cover,
-                width: double.infinity,
+  String designerUid = productData['uid'] ?? '';
+
+  return FutureBuilder<DocumentSnapshot>(
+    future: firestore.collection('designeregistration').doc(designerUid).get(),
+    builder: (context, designerSnapshot) {
+      if (designerSnapshot.connectionState == ConnectionState.waiting) {
+        return Center(child: CircularProgressIndicator());
+      }
+
+      if (designerSnapshot.hasError || !designerSnapshot.hasData || !designerSnapshot.data!.exists) {
+        return Center(child: Text('Designer info unavailable'));
+      }
+
+      var designerData = designerSnapshot.data!;
+      String designerName = designerData['username'] ?? 'Unknown Designer';
+      String designerImage = designerData['image'] ?? '';
+
+      return Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 1,
+              blurRadius: 5,
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                child: Image.network(
+                  productData['productimage'],
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  productData['description'] ?? 'No description available',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    productData['description'] ?? 'No description available',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                Row(
-                  children: [
-                    const Icon(Icons.star, color: Colors.yellow, size: 16),
-                    const Text("4.5"),
-                    Spacer(),
-                    Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundImage: AssetImage('asset/person.jpeg'),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.blue,
-                            ),
-                            child: Icon(
-                              Icons.check_circle,
-                              color: Colors.white,
-                              size: 16,
+                  Row(
+                    children: [
+                      const Icon(Icons.star, color: Colors.yellow, size: 16),
+                      const Text("4.5"),
+                      const Spacer(),
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundImage: designerImage.isNotEmpty
+                                ? NetworkImage(designerImage)
+                                : const AssetImage('asset/person.jpeg') as ImageProvider,
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.blue,
+                              ),
+                              child: const Icon(
+                                Icons.check_circle,
+                                color: Colors.white,
+                                size: 16,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                Text("By John Azzi"),
-              ],
+                        ],
+                      ),
+                    ],
+                  ),
+                  Text("By $designerName"),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
+          ],
+        ),
+      );
+    },
+  );
+}
   Stream<QuerySnapshot<Map<String, dynamic>>> getAllPosts(String selectedCategory) {
     if (selectedCategory == "All Items") {
       return firestore.collection("productdetails").snapshots();
