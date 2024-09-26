@@ -1,66 +1,84 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 class WishlistPage extends StatelessWidget {
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  final User? currentUser = FirebaseAuth.instance.currentUser;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {},
-        ),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.favorite, color: Colors.black),
-            SizedBox(width: 8),
-            Text(
-              'Wishlist',
-              style: TextStyle(color: Colors.black),
-            ),
-          ],
-        ),
-        centerTitle: true,
-        actions: [
-          SizedBox(width: 48),
-        ],
+        title: Text("Wishlist"),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset("asset/one.jpeg",
-  height: 250,
-              fit: BoxFit.cover,
-            ),
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundImage: AssetImage('asset/profile.jpg')
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: firestore.collection('wishlist').doc(currentUser?.uid).snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.hasError) {
+            return Center(child: Text('No wishlist available'));
+          }
+
+          DocumentSnapshot data = snapshot.data!;
+          List<dynamic> products = data['products'] ?? [];
+
+          return ListView.builder(
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              var product = products[index];
+              return ListTile(
+                leading: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    product['productimage'],
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.cover,
+                  ),
                 ),
-                SizedBox(width: 8),
-                Text('John Azzi'),
-                SizedBox(width: 8),
-                Icon(
-                  Icons.check_circle,
-                  color: Colors.blue,
-                  size: 16,
+                title: Text(product['description']),
+                subtitle: Text("By ${product['designerName']}"),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircleAvatar(
+                      backgroundImage: NetworkImage(product['designerImage']),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete, color: Colors.red),
+                      onPressed: () async {
+                        await _deleteProductFromWishlist(product);
+                      },
+                    ),
+                  ],
                 ),
-                SizedBox(width: 16),
-                OutlinedButton(
-                  onPressed: () {},
-                  child: Text('Connect'),
-                ),
-              ],
-            ),
-          ],
-        ),
+              );
+            },
+          );
+        },
       ),
     );
+  }
+
+  Future<void> _deleteProductFromWishlist(Map<String, dynamic> product) async {
+    String? currentUid = currentUser?.uid;
+    if (currentUid == null) return;
+
+    DocumentReference wishlistRef = firestore.collection('wishlist').doc(currentUid);
+    DocumentSnapshot wishlistSnapshot = await wishlistRef.get();
+
+    if (wishlistSnapshot.exists) {
+      List<dynamic> products = wishlistSnapshot.get('products') ?? [];
+
+      // Remove the product from the list
+      products.removeWhere((p) => p['productimage'] == product['productimage']);
+
+      // Update Firestore
+      await wishlistRef.update({'products': products});
+    }
   }
 }

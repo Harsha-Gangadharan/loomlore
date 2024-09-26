@@ -1,12 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutterlore/view/home/chat/chatroom.dart';
+import 'package:flutterlore/view/home/chat/message.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class WidgetHome {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final User? currentUser = FirebaseAuth.instance.currentUser;
-
+ 
+  String searchQuery = ''; // Variable to hold the search query
  AppBar buildAppBar(BuildContext context) {
   return AppBar(
     elevation: 0,
@@ -25,7 +28,10 @@ class WidgetHome {
         IconButton(
           icon: const Icon(Icons.telegram, color: Colors.black),
           onPressed: () {
-            // Define ChatPage or navigate to it
+             Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => Chatscreen()),
+              );
           },
         ),
         const SizedBox(width: 10),
@@ -97,8 +103,7 @@ class WidgetHome {
       },
     );
   }
-
-  Widget buildSearchBar() {
+Widget buildSearchBar() {
     return TextField(
       decoration: InputDecoration(
         hintText: "Search Styles...",
@@ -178,10 +183,9 @@ class WidgetHome {
       },
     );
   }
-
- 
-  Widget buildProductCard(Map<String, dynamic> productData) {
+Widget buildProductCard(Map<String, dynamic> productData) {
   String designerUid = productData['uid'] ?? '';
+  String productId = productData['id'] ?? ''; // Ensure there's an ID for each product
 
   return FutureBuilder<DocumentSnapshot>(
     future: firestore.collection('designeregistration').doc(designerUid).get(),
@@ -198,85 +202,197 @@ class WidgetHome {
       String designerName = designerData['username'] ?? 'Unknown Designer';
       String designerImage = designerData['image'] ?? '';
 
-      return Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              spreadRadius: 1,
-              blurRadius: 5,
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                child: Image.network(
-                  productData['productimage'],
-                  fit: BoxFit.cover,
-                  width: double.infinity,
+      // Variable to track if the product is liked
+      bool isLiked = false;
+
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  spreadRadius: 1,
+                  blurRadius: 5,
                 ),
-              ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    productData['description'] ?? 'No description available',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    child: Image.network(
+                      productData['productimage'] ?? 'https://via.placeholder.com/150',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) => Image.asset('asset/default_product_image.png'),
                     ),
                   ),
-                  Row(
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.star, color: Colors.yellow, size: 16),
-                      const Text("4.5"),
-                      const Spacer(),
-                      Stack(
+                      Text(
+                        productData['description'] ?? 'No description available',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween, // Align items evenly
                         children: [
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundImage: designerImage.isNotEmpty
-                                ? NetworkImage(designerImage)
-                                : const AssetImage('asset/person.jpeg') as ImageProvider,
+                          Row(
+                            children: [
+                              const Icon(Icons.star, color: Colors.yellow, size: 16),
+                              const Text("4.5"),
+                              const SizedBox(width: 5),
+                              ElevatedButton(
+                                onPressed: () {
+                                  // Handle rating button click
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xffCC8381),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                ),
+                                child: const Text("Rating", style: TextStyle(fontSize: 12)),
+                              ),
+                            ],
                           ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.blue,
-                              ),
-                              child: const Icon(
-                                Icons.check_circle,
-                                color: Colors.white,
-                                size: 16,
-                              ),
+                          IconButton(
+                            icon: Icon(
+                              isLiked ? Icons.favorite : Icons.favorite_border,
+                              color: isLiked ? Colors.red : Colors.black,
                             ),
+                            onPressed: () async {
+                              await toggleWishlist(productData, designerData.data() as Map<String, dynamic>, productId);
+                              setState(() {
+                                isLiked = !isLiked;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      Row(
+                        children: [
+                          Stack(
+                            children: [
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundImage: designerImage.isNotEmpty
+                                    ? NetworkImage(designerImage)
+                                    : const AssetImage('asset/person.jpeg') as ImageProvider,
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.blue,
+                                  ),
+                                  child: const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text("By $designerName"),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.message, color: Colors.blue),
+                            onPressed: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (context) {
+  return MessageScreen(
+    receiverID: designerUid,
+    receiverEmail: designerData['email'],
+    receiverCollection: 'designeregistration',  // Specify the designer's collection
+  );
+}));
+
+                            },
                           ),
                         ],
                       ),
                     ],
                   ),
-                  Text("By $designerName"),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       );
     },
   );
 }
+
+
+
+Future<void> toggleWishlist(Map<String, dynamic> productData, Map<String, dynamic> designerData, String productId) async {
+  String? currentUid = currentUser?.uid;
+  if (currentUid == null) return;
+
+  DocumentReference wishlistRef = firestore.collection('wishlist').doc(currentUid);
+
+  DocumentSnapshot wishlistSnapshot = await wishlistRef.get();
+  
+  if (wishlistSnapshot.exists) {
+    // The document exists, so we can safely access the fields
+    List<dynamic> wishlistItems = wishlistSnapshot.get('items') ?? [];
+    List<dynamic> products = wishlistSnapshot.get('products') ?? [];
+
+    if (wishlistItems.contains(productId)) {
+      // Remove the product from the wishlist
+      wishlistItems.remove(productId);
+      products.removeWhere((product) => product['productId'] == productId);
+    } else {
+      // Add the product to the wishlist
+      wishlistItems.add(productId);
+      products.add({
+        'productId': productId,
+        'productimage': productData['productimage'],
+        'description': productData['description'],
+        'designerName': designerData['username'],
+        'designerImage': designerData['image'],
+      });
+    }
+
+    await wishlistRef.update({
+      'items': wishlistItems,
+      'products': products,
+    });
+  } else {
+    // The document doesn't exist, so we create it with the initial data
+    await wishlistRef.set({
+      'items': [productId],
+      'products': [
+        {
+          'productId': productId,
+          'productimage': productData['productimage'],
+          'description': productData['description'],
+          'designerName': designerData['username'],
+          'designerImage': designerData['image'],
+        }
+      ],
+    });
+  }
+}
+
   Stream<QuerySnapshot<Map<String, dynamic>>> getAllPosts(String selectedCategory) {
     if (selectedCategory == "All Items") {
       return firestore.collection("productdetails").snapshots();
