@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutterlore/view/home/chat/chatroom.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class HomeWidgPage {
@@ -21,13 +22,16 @@ class HomeWidgPage {
               fontWeight: FontWeight.bold,
             ),
           ),
-          const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.telegram, color: Colors.black),
-            onPressed: () {
-              // Define ChatPage or navigate to it
-            },
-          ),
+           const Spacer(),
+        IconButton(
+          icon: const Icon(Icons.telegram, color: Colors.black),
+          onPressed: () {
+             Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ChatRoomScreen()),
+              );
+          },
+        ),
           const SizedBox(width: 10),
           StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance
@@ -98,24 +102,59 @@ class HomeWidgPage {
     );
   }
 
-  Widget buildSearchBar() {
-    return TextField(
-      decoration: InputDecoration(
-        hintText: "Search Styles...",
-        prefixIcon: Icon(Icons.search),
-        suffixIcon: Icon(Icons.tune, color: Color(0xffCC8381)),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none,
-        ),
-        filled: true,
-        fillColor: Colors.grey[200],
+ Widget buildSearchBar(BuildContext context, Function(String) onCategorySelected) {
+  return TextField(
+    decoration: InputDecoration(
+      hintText: "Search Styles...",
+      prefixIcon: Icon(Icons.search),
+      suffixIcon: IconButton(
+        icon: Icon(Icons.tune, color: Color(0xffCC8381)),
+        onPressed: () {
+          // Show a dialog or bottom sheet with category options
+          showCategorySelectionDialog(context, onCategorySelected);
+        },
       ),
-    );
-  }
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: BorderSide.none,
+      ),
+      filled: true,
+      fillColor: Colors.grey[200],
+    ),
+  );
+}
+
+void showCategorySelectionDialog(BuildContext context, Function(String) onCategorySelected) {
+  showModalBottomSheet(
+    context: context,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (BuildContext context) {
+      final categories = ['Officewear', 'Party Wear', 'Casual Wear', 'Western', 'Traditional'];
+      
+      return Container(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // Fit the content size
+          children: categories.map((category) {
+            return ListTile(
+              title: Text(category),
+              onTap: () {
+                onCategorySelected(category); // Pass selected category back
+                Navigator.pop(context); // Close the bottom sheet
+              },
+            );
+          }).toList(),
+        ),
+      );
+    },
+  );
+}
+
 
   Widget buildCategoryTabs(Function(String) onCategorySelected, String selectedCategory) {
-    final categories = ["All Items", "Women", "Men", "Colourwheel"];
+    final categories = ["All Items"];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -241,8 +280,8 @@ class HomeWidgPage {
                     ),
                     Row(
                       children: [
-                        const Icon(Icons.star, color: Colors.yellow, size: 16),
-                        const Text("4.5"),
+                        // const Icon(Icons.star, color: Colors.yellow, size: 16),
+                        // const Text("4.5"),
                         const Spacer(),
                         Stack(
                           children: [
@@ -273,30 +312,30 @@ class HomeWidgPage {
                       ],
                     ),
                     Text("By $designerName"),
-                    Row(
-                      children: [
-                        FutureBuilder<bool>(
-                          future: checkLikeStatus(productId),
-                          builder: (context, likeSnapshot) {
-                            if (!likeSnapshot.hasData) {
-                              return Icon(Icons.favorite_border, color: Colors.grey);
-                            }
-                            bool isLiked = likeSnapshot.data!;
-                            return IconButton(
-                              icon: Icon(
-                                isLiked ? Icons.favorite : Icons.favorite_border,
-                                color: isLiked ? Colors.red : Colors.grey,
-                              ),
-                              onPressed: () async {
-                                toggleLikeStatus(productId);
-                              },
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        Text('Like'),
-                      ],
-                    ),
+                    // Row(
+                    //   children: [
+                    //     FutureBuilder<bool>(
+                    //       future: checkLikeStatus(productId),
+                    //       builder: (context, likeSnapshot) {
+                    //         if (!likeSnapshot.hasData) {
+                    //           return Icon(Icons.favorite_border, color: Colors.grey);
+                    //         }
+                    //         bool isLiked = likeSnapshot.data!;
+                    //         // return IconButton(
+                    //         //   icon: Icon(
+                    //         //     isLiked ? Icons.favorite : Icons.favorite_border,
+                    //         //     color: isLiked ? Colors.red : Colors.grey,
+                    //         //   ),
+                    //         //   onPressed: () async {
+                    //         //     toggleLikeStatus(productId);
+                    //         //   },
+                    //         // );
+                    //       },
+                    //     ),
+                    //     const SizedBox(width: 8),
+                    //     Text('Like'),
+                    //   ],
+                    // ),
                   ],
                 ),
               ),

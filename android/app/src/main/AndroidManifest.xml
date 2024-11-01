@@ -23,7 +23,7 @@
             <!-- Add your Google Maps API key here -->
             <meta-data
                 android:name="com.google.android.geo.API_KEY"
-                android:value="AIzaSyBskopccwHPXBIgJMlO416ZMPFUj9_-HpQ" />
+                android:value="AIzaSyDU2N6ZPog_sMfvFyrcS06qZPc3AIZ3Rig" />
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -38,10 +38,21 @@
             android:value="2" />
     </application>
 
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.PROCESS_TEXT"/>
-            <data android:mimeType="text/plain"/>
-        </intent>
-    </queries>
+   <queries>
+    <!-- View intent to support https URLs -->
+    <intent>
+        <action android:name="android.intent.action.VIEW" />
+        <data android:scheme="https" />
+    </intent>
+
+    <!-- Explicitly add WhatsApp as a package to target -->
+    <package android:name="com.whatsapp" />
+
+    <!-- Optional: Add PROCESS_TEXT if needed for text-based intents -->
+    <intent>
+        <action android:name="android.intent.action.PROCESS_TEXT" />
+        <data android:mimeType="text/plain" />
+    </intent>
+</queries>
+
 </manifest>

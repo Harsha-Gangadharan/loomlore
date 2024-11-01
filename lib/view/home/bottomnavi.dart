@@ -31,7 +31,7 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
       DesignPage(),
       const RunwayPage(),
       LocationPage(),
-      Chatscreen(),
+      ChatRoomScreen(),
     ];
 
     // Initialize the _currentIndex with the passed indexNum
@@ -65,7 +65,7 @@ class _PackagesState extends State<Packages> with TickerProviderStateMixin {
           Icon(Icons.style, size: 30),
           Icon(Icons.video_camera_back, size: 30),
           Icon(Icons.location_on, size: 30),
-          Icon(Icons.chat, size: 30),
+       
         ],
         color: Colors.white,
         buttonBackgroundColor: Colors.white,

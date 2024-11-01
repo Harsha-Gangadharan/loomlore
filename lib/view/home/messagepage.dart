@@ -1,42 +1,126 @@
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class MessagePage extends StatelessWidget {
+class MessageScreen extends StatefulWidget {
+  final String receiverID;
+  final String receiverEmail;
+  final String receiverCollection; // To know if it's a designer or user
+
+  const MessageScreen({
+    Key? key,
+    required this.receiverID,
+    required this.receiverEmail,
+    required this.receiverCollection,
+  }) : super(key: key);
+
+  @override
+  _MessageScreenState createState() => _MessageScreenState();
+}
+
+class _MessageScreenState extends State<MessageScreen> {
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  final User? currentUser = FirebaseAuth.instance.currentUser;
+  final TextEditingController messageController = TextEditingController();
+
+  @override
+  void dispose() {
+    messageController.dispose();
+    super.dispose();
+  }
+
+  // Fetches the chat messages between the current user and the designer/user
+  Stream<QuerySnapshot<Map<String, dynamic>>> getMessages() {
+    String chatRoomId = getChatRoomId(currentUser!.uid, widget.receiverID);
+    return firestore
+        .collection('chats')
+        .doc(chatRoomId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .snapshots();
+  }
+
+  // Sends a message
+  Future<void> sendMessage() async {
+    if (messageController.text.trim().isEmpty) return;
+
+    String chatRoomId = getChatRoomId(currentUser!.uid, widget.receiverID);
+    String message = messageController.text.trim();
+
+    var messageData = {
+      'senderID': currentUser!.uid,
+      'receiverID': widget.receiverID,
+      'message': message,
+      'timestamp': FieldValue.serverTimestamp(),
+    };
+
+    await firestore
+        .collection('chats')
+        .doc(chatRoomId)
+        .collection('messages')
+        .add(messageData);
+
+    messageController.clear();
+  }
+
+  // Generate a unique chat room ID
+  String getChatRoomId(String user1, String user2) {
+    if (user1.compareTo(user2) < 0) {
+      return '$user1\_$user2';
+    } else {
+      return '$user2\_$user1';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () {},
-        ),
-        title: Row(
-          children: [
-            CircleAvatar(
-              backgroundImage: AssetImage("asset/jame.jpeg"),
-            ),
-            SizedBox(width: 10),
-            Text("James Anderson"),
-            SizedBox(width: 5),
-            Icon(Icons.check_circle, color: Colors.blue, size: 15),
-          ],
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: IconThemeData(color: Colors.black),
+        title: Text(widget.receiverEmail),
       ),
       body: Column(
         children: [
           Expanded(
-            child: ListView(
-              padding: EdgeInsets.all(10),
-              children: [
-                _buildSentMessage("Hello! I just see your design and I am very impressed", true),
-                _buildReceivedMessage("Wow... Thank you", false),
-                _buildSentAudioMessage(true),
-                _buildReceivedAudioMessage(false),
-                _buildSentMessage("Okay well done", true),
-              ],
+            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: getMessages(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(child: Text("No messages yet."));
+                }
+                var messages = snapshot.data!.docs;
+
+                return ListView.builder(
+                  reverse: true,
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    var messageData = messages[index].data();
+                    bool isSentByCurrentUser = messageData['senderID'] == currentUser!.uid;
+
+                    return Align(
+                      alignment: isSentByCurrentUser
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: Container(
+                        padding: EdgeInsets.all(10),
+                        margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: isSentByCurrentUser
+                              ? Colors.blue[300]
+                              : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          messageData['message'] ?? '',
+                          style: TextStyle(color: Colors.black),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           ),
           Padding(
@@ -45,122 +129,23 @@ class MessagePage extends StatelessWidget {
               children: [
                 Expanded(
                   child: TextField(
+                    controller: messageController,
                     decoration: InputDecoration(
-                      hintText: "Type Message",
+                      hintText: "Type a message...",
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                   ),
                 ),
                 IconButton(
                   icon: Icon(Icons.send),
-                  onPressed: () {},
+                  onPressed: sendMessage,
                 ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSentMessage(String message, bool isSent) {
-    return Align(
-      alignment: isSent ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        padding: EdgeInsets.all(10),
-        margin: EdgeInsets.symmetric(vertical: 5),
-        decoration: BoxDecoration(
-          color: isSent ? Colors.white : Colors.pink.shade50,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSent ? Colors.grey.shade300 : Colors.transparent),
-        ),
-        child: Text(message),
-      ),
-    );
-  }
-
-  Widget _buildReceivedMessage(String message, bool isReceived) {
-    return Align(
-      alignment: isReceived ? Alignment.centerLeft : Alignment.centerRight,
-      child: Container(
-        padding: EdgeInsets.all(10),
-        margin: EdgeInsets.symmetric(vertical: 5),
-        decoration: BoxDecoration(
-          color: isReceived ? Colors.pink.shade50 : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(message),
-      ),
-    );
-  }
-
-  Widget _buildSentAudioMessage(bool isSent) {
-    return Align(
-      alignment: isSent ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        margin: EdgeInsets.symmetric(vertical: 5),
-        decoration: BoxDecoration(
-          color: isSent ? Colors.white : Colors.pink.shade50,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSent ? Colors.grey.shade300 : Colors.transparent),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.play_arrow, color: Colors.black),
-            SizedBox(width: 5),
-            Container(
-              width: 100,
-              height: 20,
-              color: Colors.grey.shade300,
-              child: Center(
-                child: Text(
-                  "Audio Waveform",
-                  style: TextStyle(fontSize: 12, color: Colors.black54),
-                ),
-              ),
-            ),
-            SizedBox(width: 10),
-            Text("0:17"),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReceivedAudioMessage(bool isReceived) {
-    return Align(
-      alignment: isReceived ? Alignment.centerLeft : Alignment.centerRight,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        margin: EdgeInsets.symmetric(vertical: 5),
-        decoration: BoxDecoration(
-          color: isReceived ? Colors.pink.shade50 : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.play_arrow, color: Colors.black),
-            SizedBox(width: 5),
-            Container(
-              width: 100,
-              height: 20,
-              color: Colors.grey.shade300,
-              child: Center(
-                child: Text(
-                  "Audio Waveform",
-                  style: TextStyle(fontSize: 12, color: Colors.black54),
-                ),
-              ),
-            ),
-            SizedBox(width: 10),
-            Text("0:17"),
-          ],
-        ),
       ),
     );
   }

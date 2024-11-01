@@ -30,7 +30,7 @@ class WidgetHome {
           onPressed: () {
              Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => Chatscreen()),
+                MaterialPageRoute(builder: (context) => ChatRoomScreen()),
               );
           },
         ),
@@ -119,8 +119,8 @@ Widget buildSearchBar() {
     );
   }
 
-  Widget buildCategoryTabs(Function(String) onCategorySelected, String selectedCategory) {
-    final categories = ["All Items", "Women", "Men", "Colourwheel"];
+  Widget buildCategoryTabs(Function(String) onCategorySelected, String allcategories) {
+    final categories = ["All Items", ];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -129,7 +129,7 @@ Widget buildSearchBar() {
             onTap: () {
               onCategorySelected(category); // Trigger the selection
             },
-            child: buildCategoryTab(category, category == selectedCategory),
+            child: buildCategoryTab(category, category == allcategories),
           );
         }).toList(),
       ),

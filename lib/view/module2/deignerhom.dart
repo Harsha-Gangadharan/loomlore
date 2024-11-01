@@ -7,6 +7,7 @@ import 'package:flutterlore/view/home/homewidget.dart'; // Assuming WidgetHome i
 import 'package:flutterlore/view/home/notificationpage.dart';
 import 'package:flutterlore/view/home/settings.dart';
 import 'package:flutterlore/view/home/wishlist.dart';
+import 'package:flutterlore/view/module2/mycreation.dart';
 import 'package:flutterlore/view/module2/widhetH.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -37,7 +38,11 @@ class _DesignerHomePageState extends State<DesignerHomePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             a.buildGreeting(), // Greeting
-            a.buildSearchBar(), // Search Bar
+            a.buildSearchBar(context, (category) {
+            setState(() {
+              selectedCategory = category;
+            });
+          }), // Search Bar
             const SizedBox(height: 20),
             a.buildCategoryTabs((category) {
               setState(() {
@@ -115,20 +120,20 @@ Drawer buildDrawer() {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => MyCreationPage()),
+                MaterialPageRoute(builder: (context) => CreationPage()),
               );
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.favorite),
-            title: const Text('Wishlist'),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => WishlistPage()),
-              );
-            },
-          ),
+          // ListTile(
+          //   leading: const Icon(Icons.favorite),
+          //   title: const Text('Wishlist'),
+          //   onTap: () {
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(builder: (context) => WishlistPage()),
+          //     );
+          //   },
+          // ),
           ListTile(
             leading: const Icon(Icons.chat),
             title: const Text('Complaints'),

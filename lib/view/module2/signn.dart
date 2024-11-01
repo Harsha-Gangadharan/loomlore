@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -12,8 +11,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-
 import '../home/bottomnavi.dart';
 
 class DesignerRegistrationPage extends StatefulWidget {
@@ -28,6 +25,7 @@ class _DesignerRegistrationPageState extends State<DesignerRegistrationPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _emailIdController = TextEditingController();
+  final _phoneController = TextEditingController(); // Phone number controller
   bool _obscureText = true;
   File? selectedImage;
   String email = '';
@@ -66,6 +64,7 @@ class _DesignerRegistrationPageState extends State<DesignerRegistrationPage> {
       "username": _usernameController.text,
       "email": _emailIdController.text,
       "password": _passwordController.text,
+      "phone": _phoneController.text, // Add phone number to Firestore
       "image": imageUrl,
       "id": uid,
     });
@@ -174,6 +173,14 @@ class _DesignerRegistrationPageState extends State<DesignerRegistrationPage> {
                     ),
                     const SizedBox(height: 20),
                     UserData(
+                      hintext: 'Phone Number',
+                      icon: const Icon(Icons.phone),
+                      fillColor: Colors.white,
+                      controller: _phoneController,
+                      validator: Validator.validatePhoneNumber, // Add a validator for phone
+                    ),
+                    const SizedBox(height: 20),
+                    UserData(
                       hintext: 'Password',
                       icon: Icon(
                           _obscureText ? Icons.visibility_off : Icons.visibility),
@@ -198,7 +205,7 @@ class _DesignerRegistrationPageState extends State<DesignerRegistrationPage> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
-                                    'Invalid username, password, or email'),
+                                    'Invalid username, password, email, or phone number'),
                                 backgroundColor: Colors.red,
                               ),
                             );
@@ -221,67 +228,7 @@ class _DesignerRegistrationPageState extends State<DesignerRegistrationPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      "or",
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 20),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 30),
-                      child: OutlinedButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(
-                          Icons.g_translate,
-                          color: Color(0xffCC8381),
-                        ),
-                        label: const Text(
-                          "Continue with Google",
-                          style: TextStyle(
-                            color: Color(0xffCC8381),
-                            fontSize: 18,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 50),
-                          side: const BorderSide(color: Color(0xffCC8381)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 30),
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const PhoneLogin()),
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.phone,
-                          color: Color(0xffCC8381),
-                        ),
-                        label: const Text(
-                          "Continue with Phone Number",
-                          style: TextStyle(
-                            color: Color(0xffCC8381),
-                            fontSize: 18,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 50),
-                          side: const BorderSide(color: Color(0xffCC8381)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                    ),
+                    
                     const SizedBox(height: 20),
                     TextButton(
                       onPressed: () {},
@@ -320,13 +267,12 @@ class _DesignerRegistrationPageState extends State<DesignerRegistrationPage> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                  ],
+                  
+          ]
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
+            )]
+            )));
+  
   }
 }

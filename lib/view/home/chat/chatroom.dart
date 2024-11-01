@@ -1,177 +1,92 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutterlore/view/home/bottomnavi.dart';
-import 'package:flutterlore/view/home/chat/controller.dart';
 import 'package:flutterlore/view/home/chat/message.dart';
 
-class Chatscreen extends StatefulWidget {
-  const Chatscreen({super.key});
-
-  @override
-  State<Chatscreen> createState() => _ChatscreenState();
-}
-
-class _ChatscreenState extends State<Chatscreen> {
-  String searchQuery = '';
+class ChatRoomScreen extends StatelessWidget {
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  final User? currentUser = FirebaseAuth.instance.currentUser;
+  final String? currentUid = FirebaseAuth.instance.currentUser?.uid;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TextFormField(
-                decoration: InputDecoration(
-                  hintText: 'Search Users',
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    searchQuery = value.toLowerCase();
-                  });
-                },
-              ),
-            ),
-            Expanded(child: buildUserList(searchQuery)),
-          ],
-        ),
+      appBar: AppBar(
+        title: Text('Chats'),
       ),
-      bottomNavigationBar: MyNav(
-        index: 0,
-        onTap: (index) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => Packages(indexNum: index),
-            ),
-          );
-        },
-        firestore: FirebaseFirestore.instance,
-        auth: FirebaseAuth.instance,
-      ),
-    );
-  }
+      body: currentUid == null
+          ? Center(child: Text("User not logged in"))
+          : StreamBuilder<QuerySnapshot>(
+              stream: firestore
+                  .collection('chats')
+                  .where('participants', arrayContains: currentUid)
+                  .orderBy('lastMessageTimestamp', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(child: Text("No chats available"));
+                }
 
-  Widget buildUserList(String searchQuery) {
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: ChatService().getUsers(), // Ensure this returns a Stream<List<Map<String, dynamic>>>
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        }
+                var chatRooms = snapshot.data!.docs;
 
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(child: Text('No users found'));
-        }
+                return ListView.builder(
+                  itemCount: chatRooms.length,
+                  itemBuilder: (context, index) {
+                    var chatRoom = chatRooms[index].data() as Map<String, dynamic>;
+                    var designerUid = chatRoom['designerUid'];
+                    var lastMessage = chatRoom['lastMessage'] ?? '';
+                    var lastMessageTimestamp = chatRoom['lastMessageTimestamp'] as Timestamp?;
 
-        final filteredUsers = snapshot.data!
-            .where((user) => user['username'].toString().toLowerCase().contains(searchQuery))
-            .toList();
+                    return FutureBuilder<DocumentSnapshot>(
+                      future: firestore.collection('designeregistration').doc(designerUid).get(),
+                      builder: (context, designerSnapshot) {
+                        if (!designerSnapshot.hasData || !designerSnapshot.data!.exists) {
+                          return SizedBox.shrink();
+                        }
 
-        return ListView(
-          children: filteredUsers
-              .map<Widget>((userData) => buildUserListItem(userData, context))
-              .toList(),
-        );
-      },
-    );
-  }
+                        var designerData = designerSnapshot.data!;
+                        String designerName = designerData['username'] ?? 'Unknown Designer';
+                        String designerImage = designerData['image'] ?? '';
 
-  User? getCurrentUser() {
-    return FirebaseAuth.instance.currentUser;
-  }
-
-  Widget buildUserListItem(Map<String, dynamic> userData, BuildContext context) {
-    if (userData['email'] != getCurrentUser()!.email) {
-      return UserTile(
-        userData: userData,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MessageScreen(
-                receiverID: userData['id'],
-                receiverEmail: userData['email'],
-                receiverCollection: 'designeregistration',  // Specify collection if needed
-              ),
-            ),
-          );
-        },
-      );
-    } else {
-      return Container();
-    }
-  }
-}
-
-class UserTile extends StatelessWidget {
-  final Map<String, dynamic> userData;
-  final void Function()? onTap;
-
-  const UserTile({
-    super.key,
-    required this.userData,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.all(20),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundImage: NetworkImage(userData['image']),
-            ),
-            SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(userData['username']),
-                  StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('Chatroom')
-                        .doc(getChatRoomId(FirebaseAuth.instance.currentUser!.uid, userData['id']))
-                        .collection('message')
-                        .orderBy('timestamp', descending: true)
-                        .limit(1)
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Text('Loading...');
-                      }
-                      if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
-                        var lastMessage = snapshot.data!.docs.first;
-                        return Text(
-                          lastMessage['message'] ?? 'No message content',
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: designerImage.isNotEmpty
+                                ? NetworkImage(designerImage)
+                                : AssetImage('assets/person.jpeg') as ImageProvider,
+                          ),
+                          title: Text(designerName),
+                          subtitle: Text(lastMessage),
+                          trailing: lastMessageTimestamp != null
+                              ? Text(formatTimestamp(lastMessageTimestamp))
+                              : SizedBox.shrink(),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => MessageScreen(
+                                  receiverID: designerUid,
+                                  receiverEmail: designerData['email'],
+                                  receiverCollection: 'designeregistration',
+                                ),
+                              ),
+                            );
+                          },
                         );
-                      } else {
-                        return Text(
-                          'No messages yet',
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
-                        );
-                      }
-                    },
-                  ),
-                ],
-              ),
+                      },
+                    );
+                  },
+                );
+              },
             ),
-          ],
-        ),
-      ),
     );
   }
 
-  String getChatRoomId(String user1, String user2) {
-    List<String> ids = [user1, user2];
-    ids.sort();
-    return ids.join('_');
+  // Format timestamp into a readable time (HH:mm format)
+  String formatTimestamp(Timestamp timestamp) {
+    DateTime dateTime = timestamp.toDate();
+    return "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}";
   }
 }

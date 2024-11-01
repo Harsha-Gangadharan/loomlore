@@ -1,15 +1,13 @@
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutterlore/view/authentication/login.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'login.dart';
-import 'phonelogin.dart';
 import 'validation.dart';
 import 'widget.dart';
 import '../home/bottomnavi.dart';
@@ -26,6 +24,7 @@ class _SignUpState extends State<SignUp> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _emailIdController = TextEditingController();
+  final _phoneNumberController = TextEditingController();
   bool _obscureText = true;
   File? selectedImage;
   String email = '';
@@ -59,11 +58,12 @@ class _SignUpState extends State<SignUp> {
       imageUrl = await snapshot.ref.getDownloadURL();
     }
 
-    // Save user details in Firestore
+    // Save user details in Firestore, including phone number
     await FirebaseFirestore.instance.collection('useregistration').doc(uid).set({
       "username": _usernameController.text,
       "email": _emailIdController.text,
       "password": _passwordController.text,
+      "phone": _phoneNumberController.text,
       "image": imageUrl,
       "id": uid,
     });
@@ -172,6 +172,14 @@ class _SignUpState extends State<SignUp> {
                     ),
                     const SizedBox(height: 20),
                     UserData(
+                      hintext: 'Phone Number',
+                      icon: const Icon(Icons.phone),
+                      fillColor: Colors.white,
+                      controller: _phoneNumberController,
+                      validator: Validator.validatePhoneNumber,
+                    ),
+                    const SizedBox(height: 20),
+                    UserData(
                       hintext: 'Password',
                       icon: Icon(
                           _obscureText ? Icons.visibility_off : Icons.visibility),
@@ -196,7 +204,7 @@ class _SignUpState extends State<SignUp> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
-                                    'Invalid username, password, or email'),
+                                    'Invalid username, password, email, or phone number'),
                                 backgroundColor: Colors.red,
                               ),
                             );
@@ -219,70 +227,15 @@ class _SignUpState extends State<SignUp> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      "or",
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 20),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 30),
-                      child: OutlinedButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(
-                          Icons.g_translate,
-                          color: Color(0xffCC8381),
-                        ),
-                        label: const Text(
-                          "Continue with Google",
-                          style: TextStyle(
-                            color: Color(0xffCC8381),
-                            fontSize: 18,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 50),
-                          side: const BorderSide(color: Color(0xffCC8381)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 30),
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const PhoneLogin()),
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.phone,
-                          color: Color(0xffCC8381),
-                        ),
-                        label: const Text(
-                          "Continue with Phone Number",
-                          style: TextStyle(
-                            color: Color(0xffCC8381),
-                            fontSize: 18,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 50),
-                          side: const BorderSide(color: Color(0xffCC8381)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LoginPage(),
+                          ),
+                        );
+                      },
                       child: const Text(
                         "Already have an account?",
                         style: TextStyle(color: Colors.blue, fontSize: 16),
@@ -321,10 +274,8 @@ class _SignUpState extends State<SignUp> {
                   ],
                 ),
               ),
+            )]
             ),
-          ],
-        ),
-      ),
-    );
+            ),);
   }
 }
